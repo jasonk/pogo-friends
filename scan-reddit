@@ -1,0 +1,54 @@
+#!/usr/bin/env node
+const got = require( 'got' ), { scan } = require( './utils' );
+
+// Set to false to not scan comments for matching posts.
+const comments = true;
+
+const tovisit = [];
+const visited = [];
+visit( '/r/PokemonGoFriends', { f : 'flair_name:"Gifts & EXP grind"' } );
+
+( async () => {
+  while ( tovisit.length ) {
+    const url = tovisit.shift();
+    visited.push( url );
+    console.log( 'VISITING', url );
+    const obj = await got( url ).json();
+    proc( obj );
+  }
+} )();
+
+function proc( obj ) {
+  if ( typeof obj === 'undefined' ) return;
+  if ( Array.isArray( obj ) ) return obj.map( proc );
+  const { kind, data, before, after } = obj;
+  if ( before ) console.warn( 'BEFORE:', before );
+  if ( after ) console.warn( 'AFTER:', after );
+  switch ( kind ) {
+    case 'Listing': return data.children.map( proc );
+    case 't1':
+      scan( data.body );
+      break;
+    /*
+    case 't3': // link - reference from comment back to original post
+      visit( data.permalink );
+      scan( data.title );
+      scan( data.selftext );
+      break;
+    */
+    default: console.warn( 'UNKNOWN:', { kind, data } );
+  }
+}
+
+function visit( pl, qs ) {
+  if ( ! pl ) return;
+  let url = new URL( pl + '.json', 'https://www.reddit.com' );
+  if ( qs ) {
+    for ( const [ key, val ] of Object.entries( qs ) ) {
+      url.searchParams.append( key, val );
+    }
+  }
+  url = url.href;
+  if ( visited.includes( url ) || tovisit.includes( url ) ) return;
+  tovisit.push( url );
+}

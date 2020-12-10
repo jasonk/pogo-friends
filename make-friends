@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+// Copyright 2020 https://github.com/jasonk/pogo-friend-maker
+const fs = require( 'fs' ),
+  path = require( 'path' ),
+  qrcode = require( 'qrcode' ),
+  { keypress, new_codes, did_codes } = require( './utils' );
+
+const total = new_codes.length;
+
+( async () => {
+  while ( new_codes.length ) {
+    const code = new_codes.shift();
+    if ( did_codes.includes( code ) ) continue;
+    did( code );
+    const qr = await qrcode.toString( code, { type : 'terminal' } );
+    const msg = [
+      `-> ${code} (${new_codes.length} of ${total} remain)\n`,
+      `${qr}\n\n\n`
+    ].join( '\n' ).replace( /^/gsm, '    ' );
+    console.clear();
+    console.log( msg );
+    await keypress();
+  }
+} )();

@@ -1,0 +1,90 @@
+#!/usr/bin/env node
+const playwright = require( 'playwright' );
+const { scan } = require( './utils' );
+
+/**
+ * Determine how many matching messages to retrieve.  The scanner will
+ * exit after finding this many matching posts.
+ */
+const fetch = 50;
+
+/**
+ * Which browser to use.  The default is "webkit" (Safari), but you
+ * can change it to "firefox" of "chromium".
+ */
+const browserType = 'webkit';
+// const browserType = 'firefox';
+// const browserType = 'chromium';
+
+/**
+ * By default this works with a headless browser, so you don't have to
+ * deal with the browser window popping up in front of other stuff you
+ * are doing.  If it's having problems you might want to watch it
+ * work, so you can change this to `false` in order to have it
+ * display the browser instead of running headless.
+ */
+const headless = true;
+
+/* * * * * END OF CONFIGURATION * * * * */
+
+// NOTE: This function get stringified in order to send it to the
+// browser, so it can't contain closures.
+function setupMutationObserver( limit ) {
+  let fetched = 0;
+  let timer;
+  const resetTimer = () => {
+    clearTimeout(timer);
+    timer = setTimeout( () => window.scrollBy( 0, window.innerHeight ), 1000 );
+  };
+  const code_re = /\d\d\d\d\s*\d\d\d\d\s*\d\d\d\d/ug;
+  const observer = new MutationObserver( mutations => {
+    for ( let x = 0 ; x < mutations.length ; x++ ) {
+      const mutation = mutations[x];
+      if ( mutation.type !== 'childList' ) return;
+      const nodes = mutation.addedNodes;
+      for ( let i = 0 ; i < nodes.length ; i++ ) {
+        const arts = nodes[i].querySelectorAll( 'article div[lang]' );
+        for ( let j = 0 ; j < arts.length ; j++ ) {
+          const art = arts[j];
+          const text = art.textContent;
+          console.log( 'TRAINER CODE:', art.textContent );
+          if ( fetched++ < limit ) {
+            resetTimer();
+          } else {
+            observer.close();
+            clearTimeout( timer );
+            return;
+          }
+        }
+      }
+    }
+  } );
+  observer.observe( document.body, {
+    childList     : true,
+    subtree       : true,
+    attributes    : false,
+    characterData : false,
+  } );
+}
+
+( async () => {
+  const browser = await playwright.webkit.launch( { headless } );
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto( 'https://twitter.com/search' );
+  await page.evaluate( setupMutationObserver, fetch );
+  let counter = 0;
+  page.on( 'console', msg => {
+    if ( counter++ > fetch ) process.exit();
+    const text = msg.text();
+    if ( text.startsWith( 'TRAINER CODE:' ) ) scan( text );
+  } );
+  await page.type(
+    'css=input[placeholder="Search Twitter"]',
+    'pokemon go trainer code\n',
+  );
+
+  await page.click( '"Latest"' );
+  // section aria-labelledby="accessible-list-0" role="region"
+  // article role="article"
+} )();

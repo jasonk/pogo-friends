@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+const got = require( 'got' ),
+  { scan } = require( './utils' ),
+  split = require( 'split2' ),
+  fs = require( 'fs' );
+
+const files = process.argv.slice( 2 );
+if ( files.length ) {
+  for ( const file of files ) {
+    scan( fs.readFileSync( file, 'utf8' ).split( '\n' ) );
+  }
+} else if ( process.stdin.isTTY ) {
+  console.error( `ERROR: Either provide filenames to scan as arguments, or` );
+  console.error( ` pipe text to stdin to scan for trainer codes` );
+  process.exit( 1 );
+} else {
+  process.stdin.pipe( split() ).on( 'data', scan );
+}

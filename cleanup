@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0;
+const got = require( 'got' ),
+  fs = require( 'fs' ),
+  path = require( 'path' ),
+  qrcode = require( 'qrcode' ),
+  split = require( 'split2' );
+
+const didfile = path.resolve( __dirname, 'did.txt' );
+const newfile = path.resolve( __dirname, 'new.txt' );
+const re = /\d\d\d\d\s*\d\d\d\d\s*\d\d\d\d/ug;
+
+const did_codes = fs.existsSync( didfile )
+  ? fs.readFileSync( didfile, 'utf8' ).trim().split( '\n' )
+  : [];
+const new_codes = fs.existsSync( newfile )
+  ? fs.readFileSync( newfile, 'utf8' ).trim().split( '\n' )
+  : [];
+
+const new_new = [];
+for ( const code of new_codes ) {
+  if ( ! did_codes.includes( code ) ) new_new.push( code );
+}
+fs.writeFileSync( newfile, new_new.join( '\n' ) + '\n', 'utf8' );
