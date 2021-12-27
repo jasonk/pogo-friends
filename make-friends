@@ -1,9 +1,7 @@
 #!/usr/bin/env node
-// Copyright 2020 https://github.com/jasonk/pogo-friend-maker
-const fs = require( 'fs' ),
-  path = require( 'path' ),
-  qrcode = require( 'qrcode' ),
-  { keypress, new_codes, did_codes } = require( './utils' );
+// Copyright 2020 https://github.com/jasonk/pogo-friends
+const qrcode = require( 'qrcode' ),
+  { keypress, new_codes, did, did_codes } = require( './utils' );
 
 const total = new_codes.length;
 
